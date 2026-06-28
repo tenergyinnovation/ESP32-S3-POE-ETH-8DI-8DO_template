@@ -49,24 +49,42 @@ echo ""
 # ================================================================
 echo -e "${YELLOW}[2/4] Setting up library list...${NC}"
 
-# Define libraries using indexed arrays (more portable than associative arrays)
-LIBRARY_NAMES=("Adafruit_NeoPixel")
-LIBRARY_URLS=("https://github.com/adafruit/Adafruit_NeoPixel.git")
+# ================================================================
+# HOW TO ADD LIBRARIES:
+# ================================================================
+# To add a new library, append entries to both arrays using += syntax:
+#
+# Example - Adding a new library:
+#   LIBRARY_NAMES+=("LibraryName")
+#   LIBRARY_URLS+=("https://github.com/owner/repo.git")
+#
+# The arrays use indexed format for macOS/Linux compatibility.
+# Each library name must have a corresponding URL.
+# ================================================================
 
-# Additional libraries (commented out)
-# LIBRARY_NAMES+=("ArduinoJson" "pubsubclient" "WiFiManager" "ModbusMaster" "Universal-Arduino-Telegram-Bot")
-# LIBRARY_URLS+=("https://github.com/bblanchon/ArduinoJson.git" "https://github.com/knolleary/pubsubclient.git" "https://github.com/tzapu/WiFiManager.git" "https://github.com/4-20ma/ModbusMaster.git" "https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot.git")
+# Core Libraries - Required for ESP32-S3-POE-ETH-8DI-8DO
+LIBRARY_NAMES=("Adafruit_NeoPixel" "ArduinoJson" "PubSubClient" "NTPClient" "ESP32-S3-POE-ETH-8DI-8DO")
+LIBRARY_URLS=(
+    "https://github.com/adafruit/Adafruit_NeoPixel.git"
+    "https://github.com/bblanchon/ArduinoJson.git"
+    "https://github.com/knolleary/pubsubclient.git"
+    "https://github.com/taranais/NTPClient.git"
+    "https://github.com/tenergyinnovation/ESP32-S3-POE-ETH-8DI-8DO.git"
+)
+
+# Optional Libraries (uncomment to enable)
+# LIBRARY_NAMES+=("WiFiManager" "ModbusMaster" "Universal-Arduino-Telegram-Bot")
+# LIBRARY_URLS+=("https://github.com/tzapu/WiFiManager.git" "https://github.com/4-20ma/ModbusMaster.git" "https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot.git")
+
+# LoRa Support Libraries (if using LoRa communication)
+# LIBRARY_NAMES+=("RadioLib")
+# LIBRARY_URLS+=("https://github.com/jgromes/RadioLib.git")
 
 echo -e "${GREEN}Libraries to install:${NC}"
 for lib_name in "${LIBRARY_NAMES[@]}"; do
     echo "  • $lib_name"
 done
 echo ""
-
-# ================================================================
-# Step 3: Clone Libraries
-# ================================================================
-echo -e "${YELLOW}[3/4] Cloning libraries...${NC}"
 
 for i in "${!LIBRARY_NAMES[@]}"; do
     lib_name="${LIBRARY_NAMES[$i]}"
