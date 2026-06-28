@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 #include <ESP32S3_8DI8DO.h>
+#include <SPIFFS.h>
 
 /***********************************************************************
  * GLOBAL VARIABLES
@@ -36,6 +37,7 @@ void handleLEDCommand(String params);
 void handleOutputCommand(String params);
 void handleInputCommand(String params);
 void handleRTCCommand(String params);
+void handleStatusCommand(String params);
 void handleResetCommand(void);
 void printSeparator(const char* title = "");
 
@@ -60,8 +62,11 @@ void setup() {
     if (!board.setupRS485(9600)) {
         Serial.println("\n⚠️  RS485 initialization skipped");
     }
-    
-    printWelcome();
+        // Initialize SPIFFS for flash space info
+    if (!SPIFFS.begin(true)) {
+        Serial.println("⚠️  SPIFFS initialization failed");
+    }
+        printWelcome();
 }
 
 /***********************************************************************
@@ -164,10 +169,14 @@ void printHelpMenu(void) {
     Serial.println("    Description: Set RTC to specific date and time");
     Serial.println("    Example:     RTC SET 2026/06/28 15:30:45\n");
     
-    Serial.println("7️⃣  RESET");
+    Serial.println("7️⃣  STATUS");
+    Serial.println("    Description: Display ESP32-S3 system information");
+    Serial.println("    Information: Temperature, MAC, RAM, Flash, etc.\n");
+    
+    Serial.println("8️⃣  RESET");
     Serial.println("    Description: Reset ESP32-S3 board\n");
     
-    Serial.println("8️⃣  HELP");
+    Serial.println("9️⃣  HELP");
     Serial.println("    Description: Show this help menu\n");
     
     printSeparator();
@@ -226,6 +235,8 @@ void processCommand(String cmd) {
         handleInputCommand(params);
     } else if (commandType == "RTC") {
         handleRTCCommand(params);
+    } else if (commandType == "STATUS") {
+        handleStatusCommand(params);
     } else if (commandType == "RESET") {
         handleResetCommand();
     } else if (commandType == "HELP") {
@@ -458,6 +469,96 @@ void handleInputCommand(String params) {
     
     Serial.print("   Status: ");
     Serial.println(inputState ? "🟢 ON (HIGH)" : "🔴 OFF (LOW)");
+}
+
+/***********************************************************************
+ * HANDLE STATUS COMMAND
+ * Displays ESP32S3 system information
+ ***********************************************************************/
+void handleStatusCommand(String params) {
+    params.trim();
+    params.toUpperCase();
+    
+    Serial.println();
+    Serial.println("═══════════════════════════════════════════════════════════════");
+    Serial.println("              📊 ESP32-S3 SYSTEM STATUS");
+    Serial.println("═══════════════════════════════════════════════════════════════");
+    Serial.println();
+    
+    // 1. Temperature
+    Serial.println("🌡️  TEMPERATURE");
+    Serial.println("───────────────────────────────────────────────────────────────");
+    float tempC = temperatureRead();  // Already returns Celsius
+    Serial.printf("   Current: %.1f°C\n", tempC);
+    Serial.println();
+    
+    // 2. MAC Address
+    Serial.println("📱 MAC ADDRESS");
+    Serial.println("───────────────────────────────────────────────────────────────");
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    Serial.printf("   WiFi (STA): %02X:%02X:%02X:%02X:%02X:%02X\n", 
+                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    Serial.println();
+    
+    // 3. Memory Information
+    Serial.println("💾 MEMORY (RAM)");
+    Serial.println("───────────────────────────────────────────────────────────────");
+    uint32_t heapSize = ESP.getHeapSize();
+    uint32_t heapFree = ESP.getFreeHeap();
+    uint32_t heapUsed = heapSize - heapFree;
+    Serial.printf("   Total Size: %u bytes (%.2f KB)\n", heapSize, heapSize / 1024.0);
+    Serial.printf("   Used: %u bytes (%.2f KB)\n", heapUsed, heapUsed / 1024.0);
+    Serial.printf("   Free: %u bytes (%.2f KB)\n", heapFree, heapFree / 1024.0);
+    Serial.printf("   Usage: %.1f%%\n", (heapUsed * 100.0) / heapSize);
+    Serial.println();
+    
+    // 4. Flash Information
+    Serial.println("💿 FLASH");
+    Serial.println("───────────────────────────────────────────────────────────────");
+    uint32_t flashSize = ESP.getFlashChipSize();
+    uint32_t sketchSize = ESP.getSketchSize();
+    // Calculate remaining flash available for sketch
+    uint32_t flashFree = flashSize - sketchSize;
+    Serial.printf("   Total Size: %u bytes (%.2f MB)\n", flashSize, flashSize / 1024.0 / 1024.0);
+    Serial.printf("   Sketch Size: %u bytes (%.2f KB)\n", sketchSize, sketchSize / 1024.0);
+    Serial.printf("   Free: %u bytes (%.2f MB)\n", flashFree, flashFree / 1024.0 / 1024.0);
+    
+    // Check SPIFFS if available
+    if (SPIFFS.begin(false)) {
+        uint32_t spiffsTotalBytes = SPIFFS.totalBytes();
+        uint32_t spiffsUsedBytes = SPIFFS.usedBytes();
+        uint32_t spiffsFreeSpace = spiffsTotalBytes - spiffsUsedBytes;
+        Serial.printf("   SPIFFS: %u bytes total, %u bytes free (%.2f KB)\n", 
+                      spiffsTotalBytes, spiffsFreeSpace, spiffsFreeSpace / 1024.0);
+    } else {
+        Serial.println("   SPIFFS: Not initialized");
+    }
+    Serial.println();
+    
+    // 5. Chip Information
+    Serial.println("🖥️  CHIP INFORMATION");
+    Serial.println("───────────────────────────────────────────────────────────────");
+    Serial.printf("   Model: %s\n", ESP.getChipModel());
+    Serial.printf("   Revision: %d\n", ESP.getChipRevision());
+    Serial.printf("   Cores: %d\n", ESP.getChipCores());
+    Serial.printf("   CPU Frequency: %u MHz\n", ESP.getCpuFreqMHz());
+    Serial.printf("   SDK Version: %s\n", ESP.getSdkVersion());
+    Serial.println();
+    
+    // 6. Uptime
+    Serial.println("⏱️  UPTIME");
+    Serial.println("───────────────────────────────────────────────────────────────");
+    uint32_t uptime = millis();
+    uint32_t days = uptime / (24 * 60 * 60 * 1000);
+    uint32_t hours = (uptime % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000);
+    uint32_t minutes = (uptime % (60 * 60 * 1000)) / (60 * 1000);
+    uint32_t seconds = (uptime % (60 * 1000)) / 1000;
+    Serial.printf("   %d days, %02d:%02d:%02d (Total: %u ms)\n", days, hours, minutes, seconds, uptime);
+    Serial.println();
+    
+    Serial.println("═══════════════════════════════════════════════════════════════");
+    Serial.println();
 }
 
 /***********************************************************************
