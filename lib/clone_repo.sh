@@ -49,17 +49,16 @@ echo ""
 # ================================================================
 echo -e "${YELLOW}[2/4] Setting up library list...${NC}"
 
-declare -A LIBRARIES=(
-    ["Adafruit_NeoPixel"]="https://github.com/adafruit/Adafruit_NeoPixel.git"
-    # ["ArduinoJson"]="https://github.com/bblanchon/ArduinoJson.git"
-    # ["pubsubclient"]="https://github.com/knolleary/pubsubclient.git"
-    # ["WiFiManager"]="https://github.com/tzapu/WiFiManager.git"
-    # ["ModbusMaster"]="https://github.com/4-20ma/ModbusMaster.git"
-    # ["Universal-Arduino-Telegram-Bot"]="https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot.git"
-)
+# Define libraries using indexed arrays (more portable than associative arrays)
+LIBRARY_NAMES=("Adafruit_NeoPixel")
+LIBRARY_URLS=("https://github.com/adafruit/Adafruit_NeoPixel.git")
+
+# Additional libraries (commented out)
+# LIBRARY_NAMES+=("ArduinoJson" "pubsubclient" "WiFiManager" "ModbusMaster" "Universal-Arduino-Telegram-Bot")
+# LIBRARY_URLS+=("https://github.com/bblanchon/ArduinoJson.git" "https://github.com/knolleary/pubsubclient.git" "https://github.com/tzapu/WiFiManager.git" "https://github.com/4-20ma/ModbusMaster.git" "https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot.git")
 
 echo -e "${GREEN}Libraries to install:${NC}"
-for lib_name in "${!LIBRARIES[@]}"; do
+for lib_name in "${LIBRARY_NAMES[@]}"; do
     echo "  • $lib_name"
 done
 echo ""
@@ -69,8 +68,9 @@ echo ""
 # ================================================================
 echo -e "${YELLOW}[3/4] Cloning libraries...${NC}"
 
-for lib_name in "${!LIBRARIES[@]}"; do
-    lib_url="${LIBRARIES[$lib_name]}"
+for i in "${!LIBRARY_NAMES[@]}"; do
+    lib_name="${LIBRARY_NAMES[$i]}"
+    lib_url="${LIBRARY_URLS[$i]}"
     lib_path="${SCRIPT_DIR}/${lib_name}"
     
     if [ -d "$lib_path" ]; then
@@ -103,7 +103,7 @@ echo ""
 echo -e "${YELLOW}[4/4] Verifying installation...${NC}"
 
 ALL_SUCCESS=true
-for lib_name in "${!LIBRARIES[@]}"; do
+for lib_name in "${LIBRARY_NAMES[@]}"; do
     lib_path="${SCRIPT_DIR}/${lib_name}"
     
     if [ -d "$lib_path" ]; then
@@ -130,7 +130,7 @@ if [ "$ALL_SUCCESS" = true ]; then
     echo "  3. Include headers in your sketch: #include <LibraryName.h>"
     echo ""
     echo -e "${YELLOW}Library locations:${NC}"
-    for lib_name in "${!LIBRARIES[@]}"; do
+    for lib_name in "${LIBRARY_NAMES[@]}"; do
         echo "  • ${SCRIPT_DIR}/${lib_name}"
     done
 else
